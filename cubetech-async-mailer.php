@@ -1,13 +1,6 @@
 <?php
 
 /**
- * The plugin bootstrap file
- *
- * This file is read by WordPress to generate the plugin information in the plugin
- * admin area. This file also includes all of the dependencies used by the plugin,
- * registers the activation and deactivation functions, and defines a function
- * that starts the plugin.
- *
  * @link              https://www.cubetech.ch
  * @since             1.0.0
  * @package           Cubetech_Async_Mailer
@@ -15,7 +8,7 @@
  * @wordpress-plugin
  * Plugin Name:       cubetech aSync Mailer
  * Plugin URI:        https://github.com/cubetech/wpplugin.cubetech-async-mailer
- * Description:       This is a short description of what the plugin does. It's displayed in the WordPress admin area.
+ * Description:       cubetech aSync Mailer – sends out your mails asynchronous
  * Version:           1.0.0
  * Author:            cubetech GmbH
  * Author URI:        https://www.cubetech.ch
@@ -30,46 +23,53 @@ if ( ! defined( 'WPINC' ) ) {
 	die;
 }
 
-/**
- * The code that runs during plugin activation.
- * This action is documented in includes/class-cubetech-async-mailer-activator.php
- */
-function activate_cubetech_async_mailer() {
-	require_once plugin_dir_path( __FILE__ ) . 'includes/class-cubetech-async-mailer-activator.php';
-	Cubetech_Async_Mailer_Activator::activate();
-}
+	/**
+	 * Email Async.
+	 *
+	 * We override the wp_mail function for all non-cron requests with a function that simply
+	 * captures the arguments and schedules a cron event to send the email.
+	 */
+	if ( ! defined( 'DOING_CRON' ) || ( defined( 'DOING_CRON' ) && ! DOING_CRON ) ) {
 
-/**
- * The code that runs during plugin deactivation.
- * This action is documented in includes/class-cubetech-async-mailer-deactivator.php
- */
-function deactivate_cubetech_async_mailer() {
-	require_once plugin_dir_path( __FILE__ ) . 'includes/class-cubetech-async-mailer-deactivator.php';
-	Cubetech_Async_Mailer_Deactivator::deactivate();
-}
+		if (  ! function_exists('wp_mail') ) {
 
-register_activation_hook( __FILE__, 'activate_cubetech_async_mailer' );
-register_deactivation_hook( __FILE__, 'deactivate_cubetech_async_mailer' );
+		    function wp_mail() {
 
-/**
- * The core plugin class that is used to define internationalization,
- * admin-specific hooks, and public-facing site hooks.
- */
-require plugin_dir_path( __FILE__ ) . 'includes/class-cubetech-async-mailer.php';
+		        // Get the args passed to the wp_mail function
+		        $args = func_get_args();
 
-/**
- * Begins execution of the plugin.
- *
- * Since everything within the plugin is registered via hooks,
- * then kicking off the plugin from this point in the file does
- * not affect the page life cycle.
- *
- * @since    1.0.0
- */
-function run_cubetech_async_mailer() {
+		        // Add a random value to work around that fact that identical events scheduled within 10 minutes of each other
+		        // will not work. See: http://codex.wordpress.org/Function_Reference/wp_schedule_single_event
+		        $args[] = mt_rand();
 
-	$plugin = new Cubetech_Async_Mailer();
-	$plugin->run();
+		        // Schedule the email to be sent
+		        wp_schedule_single_event( time() + 5, 'cron_send_mail', $args );
+		    }
 
-}
-run_cubetech_async_mailer();
+		}
+
+	}
+
+	/**
+	 * This function runs during cron requests to send emails previously scheduled by our
+	 * overrided wp_mail function. We remove the last argument because it is just a random
+	 * value added to make sure the cron job schedules correctly.
+	 *
+	 * @hook    cron_send_mail  10
+	 */
+	function cubetech_cron_send_mail() {
+
+	    $args = func_get_args();
+
+	    // Remove the random number that was added to the arguments
+	    array_pop( $args );
+
+	    call_user_func_array( 'wp_mail', $args );
+	}
+
+	/**
+	 * Hook the mail sender. We accept more arguments than wp_mail currently takes just in case
+	 * they add more in the future.
+	 */
+	add_action( 'cron_send_mail', 'cubetech_cron_send_mail', 10, 10 );
+	
