@@ -9,7 +9,7 @@
  * Plugin Name:       cubetech aSync Mailer
  * Plugin URI:        https://github.com/cubetech/wpplugin.cubetech-async-mailer
  * Description:       cubetech aSync Mailer – sends out your mails asynchronous
- * Version:           1.0.0
+ * Version:           1.0.1
  * Author:            cubetech GmbH
  * Author URI:        https://www.cubetech.ch
  * License:           GPL-2.0+
@@ -64,7 +64,14 @@ if ( ! defined( 'WPINC' ) ) {
 	    // Remove the random number that was added to the arguments
 	    array_pop( $args );
 
+	    // set content type of mail
+		add_filter( 'wp_mail_content_type', 'html_mail' );
+
+		// call original function of wp_mail
 	    call_user_func_array( 'wp_mail', $args );
+
+		// reset content type of mail
+	    remove_filter( 'wp_mail_content_type', 'html_mail' );
 	}
 
 	/**
@@ -72,4 +79,11 @@ if ( ! defined( 'WPINC' ) ) {
 	 * they add more in the future.
 	 */
 	add_action( 'cron_send_mail', 'cubetech_cron_send_mail', 10, 10 );
+
+	/**
+	 * Set text/html as content type for mails (use with filter: wp_mail_content_type)
+	 */
+	function html_mail() {
+		return 'text/html';
+	}
 	
