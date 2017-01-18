@@ -4,7 +4,7 @@
 
 cubetech aSync Mailer – sends out your mails asynchronous 
 
-## Version: 1.0.0
+## Version: 1.0.1
 
 ## Person Responsible
 
@@ -13,6 +13,7 @@ Christoph S. Ackermann @acki
 ## Contributors
 
 * Christoph S. Ackermann @acki
+* Sven von Arx @svenvonarx
 
 ## Functionality
 
@@ -22,3 +23,8 @@ Christoph S. Ackermann @acki
 
 * Feature: Sending out mails asynchronous
 * Initial commit
+
+
+### 1.0.1 2017-01-18
+
+* Hotfix: Set mail content type to text/html
